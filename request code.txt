@@ -1,0 +1,20 @@
+1. Преобразовать дату начала потока в таблице потоков к виду год-месяц-день
+UPDATE streams SET started_at = SUBSTR(started_at, 7, 4) || '-' || SUBSTR(started_at, 4, 2) || '-' || SUBSTR(started_at, 1, 2);
+
+2. Получить идентификатор и номер потока, запланированного на самую позднюю дату
+SELECT id, number, MAX(started_at) FROM streams;
+
+3. Показать уникальные значения года по датам начала потоков обучения
+SELECT DISTINCT(SUBSTR(started_at, 1, 4)) FROM streams;
+
+4. Найти количество преподавателей в базе данных и вывести искомое значение в столбец с именем total_teachers
+SELECT COUNT(*) AS 'total_teachers' FROM teachers;
+
+5. Показать даты начала двух последних по времени потоков
+SELECT started_at FROM streams ORDER BY started_at DESC LIMIT 2;
+
+6. Найти среднюю успеваемости учеников по потокам преподавателя с идентификатором равным 1
+SELECT AVG(grade) FROM grades WHERE teacher_id = 1;
+
+7. Найти идентификаторы преподавателей, у которых средняя успеваемость по всем потокам меньше 4.8
+SELECT teacher_id, AVG(grade) FROM grades GROUP BY teacher_id HAVING AVG(grade) < 4.8;
