@@ -1,58 +1,43 @@
 /*
-1. Создайте представление, которое для каждого курса выводит название, номер последнего потока, дату начала обучения последнего потока и среднюю успеваемость курса по всем потокам.
+1. Найдите общее количество учеников для каждого курса. В отчёт выведите название курса и количество учеников по всем потокам курса. Решите задание с применением оконных функций.
 */
 
-CREATE VIEW 'courses_info' AS 
-SELECT 
-	courses.name AS 'Course_name', 
-	streams.number AS 'Num_last_stream', 
-	streams.started_at AS 'Data_last_stream', 
-	AVG(grades.grade) AS 'Avg_grade_in_all_streams' 
-FROM courses 
-	INNER JOIN streams 
-	ON courses.id = streams.course_id 
-	INNER JOIN grades 
-	ON streams.id = grades.stream_id 
-	GROUP BY courses.name 
-	HAVING MAX(streams.number);
-	
-	
-/*
-2. Удалите из базы данных всю информацию, которая относится к преподавателю с идентификатором, равным 3. Используйте транзакцию.
-*/
+SELECT DISTINCT
+	courses.name AS course_name, 
+	SUM(streams.student_amount) OVER(PARTITION BY courses.name) AS total_amount 
+FROM courses
+	LEFT JOIN streams
+	ON courses.id = streams.course_id;
 
-BEGIN TRANSACTION;
-DELETE FROM grades WHERE teacher_id = 3;
-DELETE FROM teachers WHERE id = 3;
-ROLLBACK;
 
 /*
-3. Создайте триггер для таблицы успеваемости, который проверяет значение успеваемости на соответствие диапазону чисел от 0 до 5 включительно.
+2. Найдите среднюю оценку по всем потокам для всех учителей. В отчёт выведите идентификатор, фамилию и имя учителя, среднюю оценку по всем проведённым потокам. Учителя, у которых не было потоков, также должны попасть в выборку. Решите задание с применением оконных функций.
 */
 
-CREATE TRIGGER check_range_grade BEFORE INSERT 
-ON grades
-BEGIN
-SELECT CASE
-WHEN
-NEW.grade NOT BETWEEN 1 AND 5 
-THEN
-RAISE(ABORT, 'Wrong range for grade!')
-END;
-END;
+SELECT DISTINCT 
+	teachers.id AS id, 
+	teachers.surname ||' '|| teachers.name AS teacher, 
+	AVG(grades.grade) OVER(PARTITION BY teachers.id) AS avg_grade 
+FROM teachers 
+	LEFT JOIN grades 
+	ON teachers.id = grades.teacher_id;
+
 
 /*
-4. Дополнительное задание. Создайте триггер для таблицы потоков, который проверяет, что дата начала потока больше текущей даты, а номер потока имеет наибольшее значение среди существующих номеров. При невыполнении условий необходимо вызвать ошибку с информативным сообщением.
+3. Какие индексы надо создать для максимально быстрого выполнения представленного запроса?
+SELECT
+  surname,
+  name,
+  number,
+  performance
+FROM academic_performance
+  JOIN teachers 
+    ON academic_performance.teacher_id = teachers.id
+  JOIN streams
+    ON academic_performance.stream_id = streams.id
+WHERE number >= 200;
 */
 
-CREATE TRIGGER check_streams BEFORE INSERT 
-ON streams
-BEGIN
-SELECT CASE
-WHEN
-(strftime('%s', NEW.started_at)) <= (strftime('%s', DATE('now')))
-OR (NEW.number <= (SELECT MAX(number) FROM streams))
-THEN
-RAISE(ABORT, 'Wrong DATA or NUM_STREAM !')
-END;
-END;
+CREATE INDEX teachers_surname_name_idx ON teachers(surname, name);
+
+
